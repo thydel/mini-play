@@ -1,0 +1,9 @@
+*~
+.cache/
+.retry/
+.hide/
+ansible/
+log/
+roles/
+tmp/
+ssh-config

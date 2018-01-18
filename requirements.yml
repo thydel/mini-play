@@ -1,0 +1,4 @@
+- src: https://github.com/thydel/ar-hg-etc-com.git
+  scm: git
+  name: hg-etc-com
+  version: use-module
