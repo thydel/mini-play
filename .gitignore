@@ -7,3 +7,13 @@ log/
 roles/
 tmp/
 ssh-config
+.cache
+.retry
+.hide
+roles
+log
+tmp
+ext
+ansible.cfg
+vault-pass.py
+inventory/local
