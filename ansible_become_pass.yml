@@ -1,0 +1,23 @@
+---
+
+- name: Defines ansible_become_pass for localhost when needed
+  hosts: localhost
+  gather_facts: False
+  tasks:
+    - command: groups
+      register: my_groups
+      changed_when: False
+      check_mode: False
+      name: Gets groups
+    - set_fact:
+        ansible_become_pass: |-
+          {{ lookup('passwordstore', 'node/' ~ lookup('pipe', 'id -un') ~ '@' ~ lookup('pipe', 'hostname -s')) }}
+      when: not 'sudo-nopasswd' in my_groups.stdout.split()
+      name: Defines ansible_become_pass
+
+- name: Defines ansible_become_pass for all other hosts
+  hosts: 'all:!localhost'
+  gather_facts: False
+  vars:
+    ansible_become_pass: |-
+      {{ lookup('passwordstore', 'ansible/' ~ lookup('env', 'USER') ~ '@' ~ inventory_hostname) }}
