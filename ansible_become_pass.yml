@@ -18,6 +18,7 @@
 - name: Defines ansible_become_pass for all other hosts
   hosts: 'all:!localhost'
   gather_facts: False
-  vars:
-    ansible_become_pass: |-
-      {{ lookup('passwordstore', 'ansible/' ~ lookup('env', 'USER') ~ '@' ~ inventory_hostname) }}
+  tasks:
+    - set_fact:
+        ansible_become_pass: |-
+          {{ lookup('passwordstore', 'ansible/' ~ lookup('env', 'USER') ~ '@' ~ inventory_hostname) }}
