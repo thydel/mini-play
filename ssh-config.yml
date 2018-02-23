@@ -1,0 +1,19 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Gets ssh-config
+  hosts: localhost
+  gather_facts: False
+
+  tasks:
+
+    - git:
+        repo: git@github.com:Epiconcept-Paris/infra-config.git
+        dest: ext/config
+        key_file: |-
+          {{ lookup('env', 'EPI_SSH_KEY_FILE') | default(omit) }}
+      name: Gets private config
+    - copy:
+        src: ext/config/ssh-config-{{ config | default('mini-play') }}
+        dest: '{{ playbook_dir}}/ssh-config'
+      name: Copy choosen ssh-config

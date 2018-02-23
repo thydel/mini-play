@@ -16,6 +16,10 @@ ssh-config.mk the_bastion=bastion.public the_tld=local
 
 Or install your private ssh config
 
+```
+ssh-config.yml
+```
+
 # Gets ansible dependencies
 
 ```
