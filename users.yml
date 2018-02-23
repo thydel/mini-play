@@ -1,6 +1,19 @@
 #!/usr/bin/env ansible-playbook
 ---
 
+- name: Defines YAML macros
+  hosts: localhost
+  gather_facts: False
+  vars:
+    macros:
+      - &ro
+        changed_when: False
+        check_mode: False
+      - &use_hg
+        include_role: { name: hg-etc-com }
+        when: use_hg is defined and use_hg | bool
+        name: commits before and after changes
+
 - import_playbook: ansible_become_pass.yml
 
 - name: Gets basic user data
@@ -9,14 +22,15 @@
 
   tasks:
 
-    - set_fact:
-        user_accounts: &user-accounts ext/user-accounts
+    - set_fact: { user_accounts: &user-accounts ext/user-accounts }
     - git:
         repo: git@github.com:Epiconcept-Paris/infra-data-user-accounts.git
         dest: *user-accounts
         key_file: |-
           {{ lookup('env', 'EPI_SSH_KEY_FILE') | default(omit) }}
+      check_mode: False
       name: Gets private data
+      tags: data
 
 - name: Builds full user data
   hosts: localhost
@@ -36,8 +50,7 @@
           {% set combine = { 'by': { 'login': { item.login: item }, 'trigram': { item.trigram: item }}} %}
           {{ group | combine(combine, recursive=True) }}
       with_items: '{{ group.users }}'
-      loop_control:
-        label: '{{ item.trigram }}'
+      loop_control: { label: '{{ item.trigram }}' }
       name: Builds indexes
 
     - set_fact:
@@ -50,24 +63,52 @@
 - name: Adds one user
   hosts: all
   gather_facts: False
-  tags: one
 
   vars:
-    space: ' '
     group: '{{ hostvars.localhost.group }}'
 
   tasks:
 
-    - assert: { that: id is defined }
+    - assert: { that: id is defined or logname is defined }
 
     - set_fact: { user: '{{ group.by.trigram[id] }}' }
+      when: id is defined
       name: Gets user data by trigram
 
+    - set_fact: { user: '{{ group.by.login[logname] }}' }
+      when: logname is defined and user is not defined
+      name: Gets user data by logname
+
+    - { <<: *use_hg, vars: { com: before mini-play user } }
     - user:
-        name: '{{ user.login }}'
-        comment: '{{ user.func ~ space ~ user.name ~ space ~ "<" ~ user.mail ~ ">" }}'
+        name: &login '{{ user.login }}'
+        comment: '{{ user.func ~ " " ~ user.name ~ " " ~ "<" ~ user.email ~ ">" }}'
         password: '{{ user.password.md5 }}'
         update_password: on_create
-        shell: /bin/bash
-      name: Creates user
+        shell: '{{ user.shell | default("/bin/bash") }}'
       become: True
+      name: Creates user
+    - { <<: *use_hg, vars: { com: after mini-play user } }
+
+    - command: getent passwd {{ user.login }}
+      register: getent
+      failed_when: getent.rc == 1 or getent.rc == 3
+      <<: *ro
+      name: Checks {{ user.login }} existence
+
+    - meta: noop
+      vars:
+        macros:
+          - &authorized_key
+            authorized_key:
+              user: *login
+              key: '{{ ssh_key.key }}'
+              state: '{{ state | default(omit) }}'
+            with_items: '{{ user.ssh_keys[var] }}'
+            loop_control: { loop_var: ssh_key, label: '{{ ssh_key.key.split()[2] }}' }
+            when: getent.stdout_lines | count
+            become: True
+            name: '{{ action }} {{ user.login }} keys'
+
+    - { <<: *authorized_key, vars: { var: presents, action: Adds } }
+    - { <<: *authorized_key, vars: { var: absents,  action: Removes, state: absent } }
