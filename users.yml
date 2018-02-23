@@ -10,7 +10,7 @@
   tasks:
 
     - set_fact:
-        user_accounts: &user-accounts /ext/user-accounts
+        user_accounts: &user-accounts ext/user-accounts
     - git:
         repo: git@github.com:Epiconcept-Paris/infra-data-user-accounts.git
         dest: *user-accounts
@@ -65,9 +65,9 @@
 
     - user:
         name: '{{ user.login }}'
-        comment: '{{ user.func ~ space ~ user.name ~ "<" ~ user.mail ~ ">" }}'
+        comment: '{{ user.func ~ space ~ user.name ~ space ~ "<" ~ user.mail ~ ">" }}'
         password: '{{ user.password.md5 }}'
-        update_password: |-
-          {{ update_password | default('on_create') }}
+        update_password: on_create
         shell: /bin/bash
       name: Creates user
+      become: True
