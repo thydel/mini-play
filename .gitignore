@@ -17,3 +17,4 @@ ext
 ansible.cfg
 vault-pass.py
 inventory/local
+inventory/ansible_become_pass
