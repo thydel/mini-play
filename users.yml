@@ -11,6 +11,7 @@
         check_mode: False
       - &use_hg
         include_role: { name: hg-etc-com }
+        become: True
         when: use_hg is defined and use_hg | bool
         name: commits before and after changes
 
