@@ -1,0 +1,33 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Defines YAML macros
+  hosts: localhost
+  gather_facts: False
+  vars:
+    macros:
+      - &ro   { changed_when: False, check_mode: False }
+      - &lo   { delegate_to: localhost, run_once: True }
+      - &rolo { <<: *ro, <<: *lo }
+      - &roba { <<: *ro, args: { executable: /bin/bash }}
+
+- name: Gets CPU usage
+  hosts: all
+  gather_facts: False
+  vars:
+    cpu: >-
+      cat <(grep 'cpu ' /proc/stat) <(sleep 1 && grep 'cpu ' /proc/stat)
+      | awk -v RS='' '{print ($13-$2+$15-$4)*100/($13-$2+$15-$4+$16-$5)}'
+    # https://askubuntu.com/questions/274349/getting-cpu-usage-realtime
+  tasks:
+    - { <<: *rolo, command: date +%s, register: date, name: Gets local epoch }
+    - { <<: *roba, shell: '{{ cpu }}', register: cpu, name: Gets CPU usage }
+    - copy:
+        content: |
+          # node CPU
+          {% for h in groups.all %}
+          {{ h }} {{ hostvars[h].cpu.stdout }}
+          {% endfor %}
+        dest: tmp/cpu-usage-{{ date.stdout }}.txt
+      <<: *lo
+      name: Format results in file
