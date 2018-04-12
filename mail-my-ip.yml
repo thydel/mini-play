@@ -17,7 +17,7 @@
         cron_file: &name mail-my-ip
         name: *name
         user: root
-        minute: '*/15'
+        minute: 5
         job: >-
           dig +short myip.opendns.com @resolver1.opendns.com
           | mail -s '{{ ansible_hostname }} IP' {{ git_config.config_value }}
