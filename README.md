@@ -51,3 +51,17 @@ with variables
 with tags
 
 - `data` to avoid checking out private user accounts repository
+
+## ssmpt-via-gmail
+
+```
+env ANSIBLE_SSH_ARGS= ssmpt-via-gmail.yml -i $node, -e user=$gmail_name -D
+```
+
+Uses `ANSIBLE_SSH_ARGS` to avoid default local `ssh-config`
+
+## mail-my-ip
+
+```
+env ANSIBLE_SSH_ARGS= mail-my-ip.yml -i $node, -D
+```

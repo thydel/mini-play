@@ -1,0 +1,36 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- hosts: all
+  gather_facts: True
+
+  vars:
+    password: |-
+      {{ lookup('passwordstore', 'imap/' ~ user ~ '@gmail.com') }}
+
+  tasks:
+    - assert:
+        that: user is defined
+        msg: |
+          "user" must be a gmail account name
+    - apt: { name: '{{ item }}' }
+      with_items: [ ssmtp, bsd-mailx ]
+      become: True
+    - git_config:
+        name: user.email
+        scope: local
+        repo: '{{ playbook_dir }}'
+      register: git_config
+      delegate_to: localhost
+    - copy:
+        content: |
+          root={{ git_config.config_value }}
+          mailhub=smtp.gmail.com:587
+          UseSTARTTLS=YES
+          AuthUser={{ user }}@gmail.com
+          AuthPass={{ password }}
+          FromLineOverride=NO
+          hostname={{ ansible_hostname }}
+        dest: /etc/ssmtp/ssmtp.conf
+        mode: 0400
+      become: True
